@@ -2,6 +2,35 @@ const rootEl = document.getElementById('input-container');
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 
+class Vector {
+	constructor(x, y, ...otherDimensions) {
+		this.components = [x, y, ...otherDimensions];
+	}
+
+	get x() {
+		return this.components[0];
+	}
+	get y() {
+		return this.components[1];
+	}
+	set x(val) {
+		this.components[0] = val;
+	}
+	set y(val) {
+		this.components[0] = val;
+	}
+
+	getComponent(num) {
+		return this.components[num];
+	}
+
+	length() {
+		let x = 0;
+		this.components.forEach((component) => (x += component ** 2));
+		return Math.sqrt(x);
+	}
+}
+
 class Point {
 	constructor(x, y) {
 		this.x = x;
