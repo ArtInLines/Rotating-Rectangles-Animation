@@ -2,30 +2,7 @@ const rootEl = document.getElementById('input-container');
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 
-const getMax = (...nums) => nums.reduce((a, b) => (a >= b ? a : b));
-
-class Point {
-	constructor(...components) {
-		this.coordinate = components;
-	}
-	get x() {
-		return this.coordinate[0];
-	}
-	get y() {
-		return this.coordinate[1];
-	}
-
-	toVector() {
-		return new Vector(...this.coordinate);
-	}
-
-	copy() {
-		return new Point(...this.coordinate);
-	}
-}
-
-class Vector {
-	/** @param {...Number} components */
+class VectorPrimitive {
 	constructor(...components) {
 		this.components = components;
 	}
@@ -47,10 +24,32 @@ class Vector {
 		else this.components = [this.components[0] || 0, val];
 	}
 	set dim(val) {
-		let arr = new Array(val);
-		for (let i = 0; i < this.dim && i < val; i++) arr[i] = this.components[i];
-		for (let i = 0; i < val; i++) arr[i] = 0;
-		this.components = arr;
+		if (val <= this.components.length) this.components = this.components.slice(0, val);
+		else {
+			let arr = new Array(val);
+			for (let i = 0; i < this.dim; i++) arr[i] = this.components[i];
+			for (let i = this.dim; i < val; i++) arr[i] = 0;
+			this.components = arr;
+		}
+	}
+}
+
+class Point extends VectorPrimitive {
+	constructor(...components) {
+		super(components);
+	}
+	toVector() {
+		return new Vector(...this.coordinate);
+	}
+	copy() {
+		return new Point(...this.coordinate);
+	}
+}
+
+class Vector extends VectorPrimitive {
+	/** @param {...Number} components */
+	constructor(...components) {
+		super(components);
 	}
 
 	getComponent(num) {
