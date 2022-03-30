@@ -2,26 +2,68 @@ const rootEl = document.getElementById('input-container');
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 
+const getMax = (...nums) => nums.reduce((a, b) => (a >= b ? a : b));
+
+class Point {
+	constructor(...components) {
+		this.coordinate = components;
+	}
+	get x() {
+		return this.coordinate[0];
+	}
+	get y() {
+		return this.coordinate[1];
+	}
+
+	toVector() {
+		return new Vector(...this.coordinate);
+	}
+
+	copy() {
+		return new Point(...this.coordinate);
+	}
+}
+
 class Vector {
-	constructor(x, y, ...otherDimensions) {
-		this.components = [x, y, ...otherDimensions];
+	/** @param {...Number} components */
+	constructor(...components) {
+		this.components = components;
 	}
 
 	get x() {
-		return this.components[0];
+		return this.components[0] || null;
 	}
 	get y() {
-		return this.components[1];
+		return this.components[1] || null;
+	}
+	get dim() {
+		return this.components.length;
 	}
 	set x(val) {
 		this.components[0] = val;
 	}
 	set y(val) {
-		this.components[0] = val;
+		if (this.components.length > 1) this.components[1] = val;
+		else this.components = [this.components[0] || 0, val];
+	}
+	set dim(val) {
+		let arr = new Array(val);
+		for (let i = 0; i < this.dim && i < val; i++) arr[i] = this.components[i];
+		for (let i = 0; i < val; i++) arr[i] = 0;
+		this.components = arr;
 	}
 
 	getComponent(num) {
 		return this.components[num];
+	}
+
+	toPoint() {
+		return new Point(...this.components);
+	}
+
+	copy() {
+		let v = new Vector(...this.components);
+		return v;
 	}
 
 	length() {
@@ -29,12 +71,64 @@ class Vector {
 		this.components.forEach((component) => (x += component ** 2));
 		return Math.sqrt(x);
 	}
-}
 
-class Point {
-	constructor(x, y) {
-		this.x = x;
-		this.y = y;
+	scale(scalar) {
+		this.components = this.components.map((x) => x * scalar);
+		return this;
+	}
+
+	normalize() {
+		return this.scale(1 / this.length());
+	}
+
+	static emptyVector(dim = 2, fillValue = 0) {
+		return new Vector(...new Array(dim).fill(fillValue));
+	}
+
+	/** @param  {...Vector} vectors */
+	static scalarProduct(...vectors) {
+		if (vectors.length < 2) return null;
+
+		let len = vectors.reduce((v, u) => (v.dim <= u.dim ? v : u)).dim;
+		let res = new Array(len).fill(1);
+		for (let i = 0; i < len; i++) {
+			for (let j = 0; j < vectors.length; j++) res[i] *= vectors[j].getComponent(i);
+		}
+
+		return res.reduce((a, b) => a + b);
+	}
+
+	// TODO
+	static crossProduct(...vectors) {
+		return null;
+	}
+
+	/** @param {...Vector} vectors */
+	static add(...vectors) {
+		if (vectors.length < 2) {
+			if (vectors.length < 1) return vectors[0];
+			return null;
+		}
+		for (let i = 1; i < vectors.length; i++) {
+			if (vectors[i - 1].dim !== vectors[i].dim) return null;
+		}
+
+		let res = Vector.emptyVector(vectors[0].dim, 0);
+		for (let i = 0; i < res.dim; i++) {
+			for (let j = 0; j < vectors.length; j++) res.components[i] += vectors[j].components[i];
+		}
+
+		return res;
+	}
+
+	/**
+	 * Get the Vector between to Points (going from Point A to Point B)
+	 * @param {Point} A
+	 * @param {Point} B
+	 * @returns {Vector}
+	 */
+	static PointToPoint(A, B) {
+		return new Vector(...A.coordinate.map((a, i) => a - B.coordinate[i]));
 	}
 }
 
