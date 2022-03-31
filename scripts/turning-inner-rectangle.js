@@ -37,15 +37,28 @@ class VectorPrimitive {
 		}
 	}
 
+	stringify() {
+		return '(' + this.components.join(' | ') + ')';
+	}
+
 	getComponent(num) {
 		return this.components[num];
+	}
+
+	static areEqual(...vectorPrimitives) {
+		for (let i = 0; i < vectorPrimitives[0].components.length; i++) {
+			for (let j = 1; j < vectorPrimitives.length; j++) {
+				if (vectorPrimitives[j - 1].components[i] !== vectorPrimitives[j].components[i]) return false;
+			}
+		}
+		return true;
 	}
 }
 
 class Point extends VectorPrimitive {
 	/** @param {...Number} components */
 	constructor(...components) {
-		super(components);
+		super(...components);
 	}
 	toVector() {
 		return new Vector(...this.components);
@@ -58,12 +71,11 @@ class Point extends VectorPrimitive {
 class Vector extends VectorPrimitive {
 	/** @param {...Number} components */
 	constructor(...components) {
-		super(components);
+		super(...components);
 	}
 
 	toPoint() {
 		let p = new Point(...this.components);
-		console.log(...this.components);
 		return p;
 	}
 
@@ -85,6 +97,10 @@ class Vector extends VectorPrimitive {
 
 	normalize() {
 		return this.scale(1 / this.length());
+	}
+
+	normalizeCopy() {
+		return this.copy().scale(1 / this.length());
 	}
 
 	static emptyVector(dim = 2, fillValue = 0) {
