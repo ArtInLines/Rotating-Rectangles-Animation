@@ -40,3 +40,16 @@ body {
 .slider {
 	display: inline-block;
 }
+
+.text {
+}
+
+.feedback-text {
+}
+
+.gif-player {
+	z-index: 10;
+	position: relative;
+	top: 0;
+	left: 0;
+}
