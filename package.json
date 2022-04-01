@@ -1,0 +1,28 @@
+{
+  "name": "animations",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gif.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArtInLines/Animations.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ArtInLines/Animations/issues"
+  },
+  "homepage": "https://github.com/ArtInLines/Animations#readme",
+  "dependencies": {
+    "express": "^4.17.3",
+    "formidable": "^2.0.1"
+  }
+}

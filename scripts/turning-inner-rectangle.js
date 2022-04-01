@@ -1,4 +1,5 @@
-const rootEl = document.getElementById('input-container');
+const canvasContainer = document.getElementById('canvas-container');
+const sliderContainer = document.getElementById('input-container');
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -80,7 +81,8 @@ class Vector extends VectorPrimitive {
 	}
 
 	copy() {
-		let v = new Vector(...this.components);
+		let v = Vector.emptyVector(this.components.length);
+		for (let i = 0; i < v.dim; i++) v.components[i] = this.components[i];
 		return v;
 	}
 
@@ -95,12 +97,27 @@ class Vector extends VectorPrimitive {
 		return this;
 	}
 
+	scaleCopy(scalar) {
+		return this.copy().scale(scalar);
+	}
+
 	normalize() {
 		return this.scale(1 / this.length());
 	}
 
 	normalizeCopy() {
-		return this.copy().scale(1 / this.length());
+		return this.scaleCopy(1 / this.length());
+	}
+
+	add(...vectors) {
+		const v = Vector.add(this, ...vectors);
+		if (!v) return null;
+		this.components = v.components;
+		return this;
+	}
+
+	addCopy(...vectors) {
+		return Vector.add(this, ...vectors);
 	}
 
 	static emptyVector(dim = 2, fillValue = 0) {
@@ -139,7 +156,6 @@ class Vector extends VectorPrimitive {
 		for (let i = 0; i < res.dim; i++) {
 			for (let j = 0; j < vectors.length; j++) res.components[i] += vectors[j].components[i];
 		}
-
 		return res;
 	}
 
@@ -147,17 +163,21 @@ class Vector extends VectorPrimitive {
 	 * Get the Vector between to Points (going from Point A to Point B)
 	 * @param {Point} A
 	 * @param {Point} B
+	 * @param {Boolean} startFromA Indicates whether the resulting vector should be situated at A or at the null vector.
 	 * @returns {Vector}
 	 */
-	static PointToPoint(A, B) {
-		return new Vector(...A.components.map((a, i) => a - B.components[i]));
+	static PointToPoint(A, B, startFromA = true) {
+		const v = Vector.emptyVector(A.dim);
+		for (let i = 0; i < v.dim; i++) v.components[i] = B.components[i] - A.components[i];
+		if (startFromA) return Vector.add(A, v);
+		else return v;
 	}
 }
 
 ///////////
 // Methods
 
-function createSlider({ label, id = label, value = 50, min = 1, max = 100, step = 1, onChange = null, parent = rootEl }) {
+function createSlider({ label, id = label, value = 50, min = 1, max = 100, step = 1, onChange = null, parent = sliderContainer }) {
 	const containerEl = document.createElement('div');
 	const labelEl = document.createElement('label');
 	const sliderEl = document.createElement('input');
@@ -219,10 +239,13 @@ function f(length, radians) {
  * @returns {Point}
  */
 function getPointOnLine(A, B, angle, denominator = 45) {
-	const AB = Vector.PointToPoint(A, B);
-	console.log(A, B, AB);
-	AB.scale(angle % denominator);
-	return AB.toPoint();
+	const AB = Vector.PointToPoint(A, B, false);
+	// console.log({ A: A.stringify(), B: B.stringify(), AB: AB.stringify() });
+	const P = AB.scaleCopy(angle / denominator)
+		.add(A)
+		.toPoint();
+	// console.log({ P: P.stringify() });
+	return P;
 }
 
 /**
@@ -245,16 +268,45 @@ function drawRect(A, B, C, D, context = ctx) {
 	context.stroke();
 }
 
-function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePerFrame, innerRectAmount, context = ctx }) {
+function clearCanvas(context) {
+	context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+}
+
+function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
+	// Documentation for GIF.js library:
+	// https://github.com/jnordberg/gif.js
+	if (!(animate.gif instanceof GIF)) {
+		animate.gif = new GIF({
+			repeat: 0, // repeat count, -1 = no repeat, 0 = forever
+			quality: 10, // pixel sample interval, lower is better
+			workers: 2, // number of web workers to spawn
+			background: '#fff', // background color where source image is transparent
+			width: topCorner.x + outerWidth, // output image width, null means first frame determines width
+			height: topCorner.y + outerHeight, // output image height, null means first frame determines height
+			workerScript: '/public/gif.js/gif.worker.js',
+			dither: 'FloydSteinberg-serpentine', // dithering method. See full docs for all options
+			debug: true,
+			transparent: '#000',
+		});
+	} else {
+		animate.gif.abort();
+	}
+	animate.rendering = false;
+	imgEl.src = '';
+
 	let alpha = 0;
 	const lastRect = { A: null, B: null, C: null, D: null };
 	const currentRect = { A: null, B: null, C: null, D: null };
 
-	return setInterval(() => {
+	const id = setInterval(() => {
 		alpha += angleIncreasePerFrame;
+		if (!animate.rendering && alpha >= 45) {
+			animate.gif.render();
+			animate.rendering = true;
+		}
 		alpha = alpha % 45;
 
-		context.clearRect(0, 0, context.canvas.width, context.canvas.height); // Clear whole canvas
+		clearCanvas(context);
 		context.strokeRect(topCorner.x, topCorner.y, outerWidth, outerHeight); // Draw outer Rectangle
 
 		lastRect.A = topCorner.copy();
@@ -262,13 +314,15 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 		lastRect.C = new Point(topCorner.x + outerWidth, topCorner.y + outerHeight);
 		lastRect.D = new Point(topCorner.x, topCorner.y + outerHeight);
 
-		console.log({ lastRect, topCorner });
+		// console.log({ A: lastRect.A.stringify(), B: lastRect.B.stringify(), C: lastRect.C.stringify(), D: lastRect.D.stringify() });
 
 		for (let i = 0; i < innerRectAmount; i++) {
 			currentRect.A = getPointOnLine(lastRect.A, lastRect.B, alpha, 45);
 			currentRect.B = getPointOnLine(lastRect.B, lastRect.C, alpha, 45);
-			currentRect.C = getPointOnLine(lastRect.B, lastRect.D, alpha, 45);
+			currentRect.C = getPointOnLine(lastRect.C, lastRect.D, alpha, 45);
 			currentRect.D = getPointOnLine(lastRect.D, lastRect.A, alpha, 45);
+
+			// console.log({ A: currentRect.A.stringify(), B: currentRect.B.stringify(), C: currentRect.C.stringify(), D: currentRect.D.stringify() });
 
 			drawRect(currentRect.A, currentRect.B, currentRect.C, currentRect.D, context);
 
@@ -277,7 +331,40 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 			lastRect.C = currentRect.C;
 			lastRect.D = currentRect.D;
 		}
-	}, interval);
+
+		animate.gif.addFrame(ctx, { copy: true, delay: interval });
+	}, Math.min(interval, 100));
+
+	animate.gif.on('abort', () => {
+		elForProgress.innerText = `Gif was aborted.`;
+	});
+
+	animate.gif.on('progress', (percentage) => {
+		elForProgress.innerText = `${Math.round(percentage)}% of the Gif is created!`;
+	});
+
+	animate.gif.on('finished', (blob) => {
+		clearInterval(id);
+		clearCanvas(context);
+		elForProgress.innerText = 'Gif done!';
+
+		let formd = new FormData();
+		let fname = 'Rotating Rectangles.gif';
+		formd.append('file', blob, fname);
+
+		fetch('/save-file', {
+			method: 'POST',
+			body: formd,
+		})
+			.then((res) => res.json())
+			.then((res) => {
+				console.log(res);
+				imgEl.src = '/img/' + fname;
+				imgEl.display = 'block';
+			});
+	});
+
+	return id;
 }
 
 function intervalToFPS(ms) {
@@ -288,7 +375,7 @@ function FPSToInterval(fps) {
 	return 1000 / fps;
 }
 
-function resize({ width, height, animID, topCorner, interval, angleIncreasePerFrame, innerRectAmount, widthFactor = 1, heightFactor = 1, context = ctx }) {
+function resize({ width, height, animID, topCorner, interval, angleIncreasePerFrame, innerRectAmount, widthFactor = 1, heightFactor = 1, elForProgress, imgEl, context = ctx }) {
 	console.log('Resizing');
 	if (widthFactor) {
 		width = context.canvas.width * widthFactor;
@@ -308,16 +395,37 @@ function resize({ width, height, animID, topCorner, interval, angleIncreasePerFr
 		angleIncreasePerFrame,
 		innerRectAmount,
 		context,
+		elForProgress,
+		imgEl,
 	});
 }
 
 ///////////
 // Global Variables & DOM Manipulation
 
+const paragraphEl = document.createElement('p');
+paragraphEl.classList.add('feedback-text', 'text');
+sliderContainer.insertAdjacentElement('beforeend', paragraphEl);
+
+const imageEl = document.createElement('img');
+imageEl.classList.add('gif-player');
+canvasContainer.insertAdjacentElement('beforeend', imageEl);
+
 ctx.lineWidth = 1;
 ctx.strokeStyle = '#000';
 
-const opts = { topCorner: new Point(0, 0), width: ctx.canvas.width, height: ctx.canvas.height, animID: null, interval: 10000, angleIncreasePerFrame: 0.5, innerRectAmount: 1, context: ctx };
+const opts = {
+	topCorner: new Point(0, 0),
+	width: ctx.canvas.width,
+	height: ctx.canvas.height,
+	animID: null,
+	interval: 1000,
+	angleIncreasePerFrame: 10,
+	innerRectAmount: 1,
+	elForProgress: paragraphEl,
+	imgEl: imageEl,
+	context: ctx,
+};
 
 window.addEventListener('resize', () => (animationID = resize(opts)));
 animationID = resize(opts);
