@@ -275,23 +275,24 @@ function clearCanvas(context) {
 function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
 	// Documentation for GIF.js library:
 	// https://github.com/jnordberg/gif.js
-	if (!(animate.gif instanceof GIF)) {
-		animate.gif = new GIF({
-			repeat: 0, // repeat count, -1 = no repeat, 0 = forever
-			quality: 10, // pixel sample interval, lower is better
-			workers: 2, // number of web workers to spawn
-			background: '#fff', // background color where source image is transparent
-			width: topCorner.x + outerWidth, // output image width, null means first frame determines width
-			height: topCorner.y + outerHeight, // output image height, null means first frame determines height
-			workerScript: '/public/gif.js/gif.worker.js',
-			dither: 'FloydSteinberg-serpentine', // dithering method. See full docs for all options
-			debug: true,
-			transparent: '#000',
-		});
-	} else {
+	if (animate.gif instanceof GIF) {
 		animate.gif.abort();
+		animate.gif = undefined;
 	}
+	animate.gif = new GIF({
+		repeat: 0, // repeat count, -1 = no repeat, 0 = forever
+		quality: 10, // pixel sample interval, lower is better
+		workers: 2, // number of web workers to spawn
+		background: '#000', // background color where source image is transparent
+		width: context.canvas.width, // output image width, null means first frame determines width
+		height: context.canvas.height, // output image height, null means first frame determines height
+		workerScript: '/public/gif.js/gif.worker.js',
+		dither: false, // dithering method. See full docs for all options
+		debug: true,
+		transparent: null,
+	});
 	animate.rendering = false;
+	context.canvas.style.display = 'block';
 	imgEl.src = '';
 
 	let alpha = 0;
@@ -307,6 +308,7 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 		alpha = alpha % 45;
 
 		clearCanvas(context);
+		context.fillRect(0, 0, canvas.width, canvas.height); // Fill background - see https://github.com/jnordberg/gif.js/issues/121
 		context.strokeRect(topCorner.x, topCorner.y, outerWidth, outerHeight); // Draw outer Rectangle
 
 		lastRect.A = topCorner.copy();
@@ -332,15 +334,15 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 			lastRect.D = currentRect.D;
 		}
 
-		animate.gif.addFrame(ctx, { copy: true, delay: interval });
-	}, Math.min(interval, 100));
+		if (!animate.rendering) animate.gif.addFrame(ctx, { copy: true, delay: Math.max(interval, 20) });
+	}, interval);
 
 	animate.gif.on('abort', () => {
 		elForProgress.innerText = `Gif was aborted.`;
 	});
 
 	animate.gif.on('progress', (percentage) => {
-		elForProgress.innerText = `${Math.round(percentage)}% of the Gif is created!`;
+		elForProgress.innerText = `${Math.round(percentage * 100)}% of the Gif is created!`;
 	});
 
 	animate.gif.on('finished', (blob) => {
@@ -359,8 +361,9 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 			.then((res) => res.json())
 			.then((res) => {
 				console.log(res);
-				imgEl.src = '/img/' + fname;
+				imgEl.src = res.fpath;
 				imgEl.display = 'block';
+				context.canvas.style.display = 'none';
 			});
 	});
 
@@ -413,15 +416,16 @@ canvasContainer.insertAdjacentElement('beforeend', imageEl);
 
 ctx.lineWidth = 1;
 ctx.strokeStyle = '#000';
+ctx.fillStyle = '#fff';
 
 const opts = {
 	topCorner: new Point(0, 0),
 	width: ctx.canvas.width,
 	height: ctx.canvas.height,
 	animID: null,
-	interval: 1000,
-	angleIncreasePerFrame: 10,
-	innerRectAmount: 1,
+	interval: 10,
+	angleIncreasePerFrame: 0.5,
+	innerRectAmount: 3,
 	elForProgress: paragraphEl,
 	imgEl: imageEl,
 	context: ctx,
@@ -430,14 +434,23 @@ const opts = {
 window.addEventListener('resize', () => (animationID = resize(opts)));
 animationID = resize(opts);
 
-createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
-createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
-createSlider({ label: 'Line Width:', value: ctx.lineWidth, min: 1, max: 10, onChange: (v) => (ctx.lineWidth = v) });
+// createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
+// createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
+createSlider({
+	label: 'Line Width:',
+	value: ctx.lineWidth,
+	min: 1,
+	max: 10,
+	onChange: (v) => {
+		ctx.lineWidth = v;
+		resize(opts);
+	},
+});
 createSlider({
 	label: 'Angle Increase per Frame:',
 	value: opts.angleIncreasePerFrame,
 	min: 0.1,
-	max: 10,
+	max: 5,
 	step: 0.1,
 	onChange: (v) => {
 		opts.angleIncreasePerFrame = v;
@@ -447,9 +460,8 @@ createSlider({
 createSlider({
 	label: 'Interval Length (ms):',
 	value: opts.interval,
-	min: 1,
-	max: 300,
-	step: 1,
+	min: 10, // Gif can't play faster than this for whatever reason
+	max: 100,
 	onChange: (v) => {
 		opts.interval = v;
 		resize(opts);
@@ -459,7 +471,7 @@ createSlider({
 	label: 'Inner Rectangles Amount',
 	value: opts.innerRectAmount,
 	min: 1,
-	max: 15,
+	max: 30,
 	onChange: (v) => {
 		opts.innerRectAmount = v;
 		resize(opts);

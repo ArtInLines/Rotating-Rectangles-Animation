@@ -18,7 +18,23 @@ app.get('/', (req, res) => {
 		res.sendFile(path.join(dataPath, req.params.name));
 	})
 	.post('/save-file', (req, res) => {
-		const form = formidable({ uploadDir: dataPath, filename: (name, ext, part) => part.originalFilename });
+		const form = formidable({
+			uploadDir: dataPath,
+			filename: (name, ext, part) => {
+				let fnameExt = part.originalFilename.split('.');
+				fnameExt = '.' + fnameExt[fnameExt.length - 1];
+				let fname = name;
+				let i = 0;
+				while (fs.existsSync(path.join(dataPath, fname + fnameExt))) fname = name + '_' + i++;
+
+				setTimeout(() => {
+					fs.rmSync(path.join(dataPath, fname + fnameExt));
+					console.log('Deleting ' + fname + fnameExt + '...');
+				}, 1000 * 60 * 1);
+
+				return fname + fnameExt;
+			},
+		});
 
 		form.parse(req, (err, fields, files) => {
 			let success = true;
@@ -26,7 +42,8 @@ app.get('/', (req, res) => {
 				console.log(err);
 				success = false;
 			}
-			res.json({ success, fields, files });
+			let fname = files?.file?.newFilename;
+			res.json({ success, fname, fpath: '/img/' + fname });
 		});
 	});
 
