@@ -343,7 +343,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 
 	animate.gif.on('abort', () => {
 		clearInterval(id);
-		elForProgress.innerText = ``;
+		elForProgress.innerText = `Current Gif aborted`;
 		animate.rendering = false;
 	});
 
