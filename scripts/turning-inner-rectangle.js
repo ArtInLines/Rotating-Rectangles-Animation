@@ -273,7 +273,7 @@ function clearCanvas(context) {
 }
 
 function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
-	console.log('Animating');
+	elForProgress.innerText = `Creating frames for Gif...`;
 	// Documentation for GIF.js library:
 	// https://github.com/jnordberg/gif.js
 	if (animate.gif instanceof GIF) {
@@ -343,12 +343,12 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 
 	animate.gif.on('abort', () => {
 		clearInterval(id);
-		elForProgress.innerText = `Gif was aborted.`;
+		elForProgress.innerText = ``;
 		animate.rendering = false;
 	});
 
 	animate.gif.on('progress', (percentage) => {
-		elForProgress.innerText = `${Math.round(percentage * 100)}% of the Gif is created!`;
+		elForProgress.innerText = `${Math.round(percentage * 100)}% of the Gif is rendered!`;
 	});
 
 	animate.gif.on('finished', (blob) => {
