@@ -55,6 +55,22 @@ body {
 }
 
 .btn {
+	margin: 0.75em;
+	padding: 0.3em 1em;
+	background-color: whitesmoke;
+	border-color: #555;
+	border-style: solid;
+	border-radius: 5px;
+	cursor: pointer;
+	color: #222;
+	font-size: 0.85em;
+}
+
+.btn:hover {
+	border-color: #000;
+	border-style: solid;
+	color: #000;
+	background-color: white;
 }
 
 .header {
