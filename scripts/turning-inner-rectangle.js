@@ -272,7 +272,7 @@ function clearCanvas(context) {
 	context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, disabledEls, context = ctx }) {
+function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, innerAngleFactor, imgEl, disabledEls, context = ctx }) {
 	const defaultText = `Creating frames for Gif...`;
 	elForProgress.innerText = defaultText;
 	disabledEls.forEach((el) => (el.disabled = true));
@@ -300,18 +300,12 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 	context.canvas.style.display = 'block';
 	imgEl.src = '';
 
-	let alpha = 0;
+	let innerAngles = new Array(innerRectAmount).fill(0);
+	const rectPoints = ['A', 'B', 'C', 'D'];
 	const lastRect = { A: null, B: null, C: null, D: null };
 	const currentRect = { A: null, B: null, C: null, D: null };
 
 	const id = setInterval(() => {
-		alpha += angleIncreasePerFrame;
-		if (!animate.rendering && alpha >= 45) {
-			animate.gif.render();
-			animate.rendering = true;
-		}
-		alpha = alpha % 45;
-
 		clearCanvas(context);
 		context.fillStyle = '#fff';
 		context.fillRect(0, 0, canvas.width, canvas.height); // Fill background - see https://github.com/jnordberg/gif.js/issues/121
@@ -322,22 +316,40 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		lastRect.C = new Point(topCorner.x + width, topCorner.y + height);
 		lastRect.D = new Point(topCorner.x, topCorner.y + height);
 
-		// console.log({ A: lastRect.A.stringify(), B: lastRect.B.stringify(), C: lastRect.C.stringify(), D: lastRect.D.stringify() });
+		let animationDone = true;
+
+		innerAngles[0] += angleIncreasePerFrame;
+		if (!animate.rendering && innerAngles[0] >= 45) {
+			animate.gif.render();
+			animate.rendering = true;
+		}
 
 		for (let i = 0; i < innerRectAmount; i++) {
-			currentRect.A = getPointOnLine(lastRect.A, lastRect.B, alpha, 45);
-			currentRect.B = getPointOnLine(lastRect.B, lastRect.C, alpha, 45);
-			currentRect.C = getPointOnLine(lastRect.C, lastRect.D, alpha, 45);
-			currentRect.D = getPointOnLine(lastRect.D, lastRect.A, alpha, 45);
+			if (i) innerAngles[i] = (innerAngles[i - 1] + angleIncreasePerFrame) * innerAngleFactor;
+			innerAngles[i] %= 45;
 
-			// console.log({ A: currentRect.A.stringify(), B: currentRect.B.stringify(), C: currentRect.C.stringify(), D: currentRect.D.stringify() });
+			// console.log({ i, val: innerAngles[i] });
 
+			for (let k = 0; k < rectPoints.length; k++) {
+				const point = rectPoints[k];
+				// Set new values for currentRect
+				currentRect[point] = getPointOnLine(lastRect[point], lastRect[rectPoints[(k + 1) % rectPoints.length]], innerAngles[i], 45);
+
+				// Only end the animation if all corresponding points are at the same position
+				// if (!VectorPrimitive.areEqual(lastRect[point], currentRect[point])) {
+				// 	animationDone = false;
+				// 	// console.log('Animation not done', { point, lastRect: lastRect[point], currentRect: currentRect[point] });
+				// }
+			}
+			// console.log('LastRect', { A: lastRect.A.stringify(), B: lastRect.B.stringify(), C: lastRect.C.stringify(), D: lastRect.D.stringify() });
+			// console.log('currentRect', { A: currentRect.A.stringify(), B: currentRect.B.stringify(), C: currentRect.C.stringify(), D: currentRect.D.stringify() });
+			// Draw current rect
 			drawRect(currentRect.A, currentRect.B, currentRect.C, currentRect.D, context);
-
-			lastRect.A = currentRect.A;
-			lastRect.B = currentRect.B;
-			lastRect.C = currentRect.C;
-			lastRect.D = currentRect.D;
+			// Set current rect as last Rect
+			for (let k = 0; k < rectPoints.length; k++) {
+				const point = rectPoints[k];
+				lastRect[point] = currentRect[point];
+			}
 		}
 
 		if (!animate.rendering) animate.gif.addFrame(ctx, { copy: true, delay: Math.max(interval, 20) });
@@ -448,6 +460,7 @@ const getDefaultOpts = (context = ctx) => {
 		animID: null,
 		interval: 10,
 		angleIncreasePerFrame: 0.5,
+		innerAngleFactor: 1,
 		innerRectAmount: 3,
 		elForProgress: paragraphEl,
 		imgEl: imageEl,
@@ -490,6 +503,18 @@ createSlider({
 	step: 0.1,
 	onChange: (v) => {
 		opts.angleIncreasePerFrame = v;
+		animate(opts);
+	},
+	parent: sliderContainer,
+});
+createSlider({
+	label: 'Inner Angle Increase Factor:',
+	value: opts.innerAngleFactor,
+	min: 0.1,
+	max: 10,
+	step: 0.1,
+	onChange: (v) => {
+		opts.innerAngleFactor = v;
 		animate(opts);
 	},
 	parent: sliderContainer,
