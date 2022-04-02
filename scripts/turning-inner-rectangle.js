@@ -273,7 +273,8 @@ function clearCanvas(context) {
 }
 
 function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
-	elForProgress.innerText = `Creating frames for Gif...`;
+	const defaultText = `Creating frames for Gif...`;
+	elForProgress.innerText = defaultText;
 	// Documentation for GIF.js library:
 	// https://github.com/jnordberg/gif.js
 	if (animate.gif instanceof GIF) {
@@ -343,7 +344,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 
 	animate.gif.on('abort', () => {
 		clearInterval(id);
-		elForProgress.innerText = `Current Gif aborted`;
+		elForProgress.innerText = defaultText;
 		animate.rendering = false;
 	});
 
