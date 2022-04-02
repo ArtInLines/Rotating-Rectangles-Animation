@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
 				setTimeout(() => {
 					fs.rmSync(path.join(dataPath, fname + fnameExt));
 					console.log('Deleting ' + fname + fnameExt + '...');
-				}, 1000 * 60 * 1);
+				}, 1000 * 60 * 3);
 
 				return fname + fnameExt;
 			},

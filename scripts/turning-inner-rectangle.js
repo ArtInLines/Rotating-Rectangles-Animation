@@ -272,13 +272,17 @@ function clearCanvas(context) {
 	context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
+function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
+	console.log('Animating');
 	// Documentation for GIF.js library:
 	// https://github.com/jnordberg/gif.js
 	if (animate.gif instanceof GIF) {
 		animate.gif.abort();
-		animate.gif = undefined;
+		// animate.gif.freeWorkers.forEach((w) => w.terminate());
+		// animate.gif.frames = [];
+		delete animate.gif;
 	}
+	clearCanvas(context);
 	animate.gif = new GIF({
 		repeat: 0, // repeat count, -1 = no repeat, 0 = forever
 		quality: 10, // pixel sample interval, lower is better
@@ -288,10 +292,9 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 		height: context.canvas.height, // output image height, null means first frame determines height
 		workerScript: '/public/gif.js/gif.worker.js',
 		dither: false, // dithering method. See full docs for all options
-		debug: true,
+		debug: false,
 		transparent: null,
 	});
-	animate.rendering = false;
 	context.canvas.style.display = 'block';
 	imgEl.src = '';
 
@@ -309,12 +312,12 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 
 		clearCanvas(context);
 		context.fillRect(0, 0, canvas.width, canvas.height); // Fill background - see https://github.com/jnordberg/gif.js/issues/121
-		context.strokeRect(topCorner.x, topCorner.y, outerWidth, outerHeight); // Draw outer Rectangle
+		context.strokeRect(topCorner.x, topCorner.y, width, height); // Draw outer Rectangle
 
 		lastRect.A = topCorner.copy();
-		lastRect.B = new Point(topCorner.x + outerWidth, topCorner.y);
-		lastRect.C = new Point(topCorner.x + outerWidth, topCorner.y + outerHeight);
-		lastRect.D = new Point(topCorner.x, topCorner.y + outerHeight);
+		lastRect.B = new Point(topCorner.x + width, topCorner.y);
+		lastRect.C = new Point(topCorner.x + width, topCorner.y + height);
+		lastRect.D = new Point(topCorner.x, topCorner.y + height);
 
 		// console.log({ A: lastRect.A.stringify(), B: lastRect.B.stringify(), C: lastRect.C.stringify(), D: lastRect.D.stringify() });
 
@@ -338,7 +341,9 @@ function animate({ topCorner, outerWidth, outerHeight, interval, angleIncreasePe
 	}, interval);
 
 	animate.gif.on('abort', () => {
+		clearInterval(id);
 		elForProgress.innerText = `Gif was aborted.`;
+		animate.rendering = false;
 	});
 
 	animate.gif.on('progress', (percentage) => {
@@ -380,20 +385,19 @@ function FPSToInterval(fps) {
 
 function resize({ width, height, animID, topCorner, interval, angleIncreasePerFrame, innerRectAmount, widthFactor = 1, heightFactor = 1, elForProgress, imgEl, context = ctx }) {
 	console.log('Resizing');
-	if (widthFactor) {
-		width = context.canvas.width * widthFactor;
-		topCorner.x = context.canvas.width / 2 - width / 2;
-	}
-	if (heightFactor) {
-		height = context.canvas.height * heightFactor;
-		topCorner.y = context.canvas.height / 2 - height / 2;
-	}
+	if (!widthFactor) widthFactor = 1;
+	width = context.canvas.width * widthFactor;
+	topCorner.x = context.canvas.width / 2 - width / 2;
+
+	if (!heightFactor) heightFactor = 1;
+	height = context.canvas.height * heightFactor;
+	topCorner.y = context.canvas.height / 2 - height / 2;
 
 	if (animID) clearInterval(animID);
 	return animate({
 		topCorner,
-		outerHeight: height,
-		outerWidth: width,
+		height,
+		width,
 		interval,
 		angleIncreasePerFrame,
 		innerRectAmount,
@@ -443,7 +447,7 @@ createSlider({
 	max: 10,
 	onChange: (v) => {
 		ctx.lineWidth = v;
-		resize(opts);
+		animate(opts);
 	},
 });
 createSlider({
@@ -454,7 +458,7 @@ createSlider({
 	step: 0.1,
 	onChange: (v) => {
 		opts.angleIncreasePerFrame = v;
-		resize(opts);
+		animate(opts);
 	},
 });
 createSlider({
@@ -464,7 +468,7 @@ createSlider({
 	max: 100,
 	onChange: (v) => {
 		opts.interval = v;
-		resize(opts);
+		animate(opts);
 	},
 });
 createSlider({
@@ -474,6 +478,8 @@ createSlider({
 	max: 30,
 	onChange: (v) => {
 		opts.innerRectAmount = v;
-		resize(opts);
+		animate(opts);
 	},
 });
+
+animate(opts);
