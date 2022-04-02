@@ -213,10 +213,10 @@ function createSlider({ label, id = label, value = 50, min = 1, max = 100, step 
 	});
 
 	containerEl.classList.add('slider-container');
-	containerEl.insertAdjacentElement('beforeend', labelEl);
-	containerEl.insertAdjacentElement('beforeend', sliderEl);
-	containerEl.insertAdjacentElement('beforeend', valEl);
-	parent.insertAdjacentElement('beforeend', containerEl);
+	containerEl.appendChild(labelEl);
+	containerEl.appendChild(sliderEl);
+	containerEl.appendChild(valEl);
+	parent.appendChild(containerEl);
 }
 
 function angleToRadians(angle) {
@@ -272,9 +272,10 @@ function clearCanvas(context) {
 	context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, context = ctx }) {
+function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, imgEl, disabledEls, context = ctx }) {
 	const defaultText = `Creating frames for Gif...`;
 	elForProgress.innerText = defaultText;
+	disabledEls.forEach((el) => (el.disabled = true));
 	// Documentation for GIF.js library:
 	// https://github.com/jnordberg/gif.js
 	if (animate.gif instanceof GIF) {
@@ -361,7 +362,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		let fname = 'Rotating Rectangles.gif';
 		formd.append('file', blob, fname);
 
-		fetch('/save-file', {
+		fetch('/save', {
 			method: 'POST',
 			body: formd,
 		})
@@ -369,6 +370,10 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 			.then((res) => {
 				console.log(res);
 				imgEl.src = res.fpath;
+				disabledEls.forEach((el) => {
+					el.disabled = false;
+					el.setAttribute('data-gifname', res.fname);
+				});
 				imgEl.display = 'block';
 				context.canvas.style.display = 'none';
 			});
@@ -403,11 +408,31 @@ function resize(opts) {
 
 const paragraphEl = document.createElement('p');
 paragraphEl.classList.add('feedback-text', 'text');
-sliderContainer.insertAdjacentElement('beforeend', paragraphEl);
 
 const imageEl = document.createElement('img');
 imageEl.classList.add('gif-player');
-canvasContainer.insertAdjacentElement('beforeend', imageEl);
+
+const optionsHeader = document.createElement('h3');
+optionsHeader.innerText = 'Options:';
+optionsHeader.classList.add('header');
+
+const downloadBtn = document.createElement('button');
+downloadBtn.innerText = 'Download Gif';
+downloadBtn.disabled = true;
+downloadBtn.classList.add('btn');
+const downloadBtnAnchor = document.createElement('a');
+downloadBtn.appendChild(downloadBtnAnchor);
+downloadBtn.addEventListener('click', () => {
+	const gifname = downloadBtn.getAttribute('data-gifname');
+	downloadBtnAnchor.href = '/save/' + gifname;
+	downloadBtnAnchor.download = gifname;
+	downloadBtnAnchor.click();
+});
+
+const resetBtn = document.createElement('button');
+resetBtn.innerText = 'Reset Options';
+resetBtn.classList.add('btn');
+resetBtn.addEventListener('click', resetDefaultOpts);
 
 ctx.lineWidth = 1;
 ctx.strokeStyle = '#000';
@@ -426,6 +451,7 @@ const getDefaultOpts = (context = ctx) => {
 		innerRectAmount: 3,
 		elForProgress: paragraphEl,
 		imgEl: imageEl,
+		disabledEls: [downloadBtn],
 		context: context,
 	};
 };
@@ -439,10 +465,9 @@ function resetDefaultOpts() {
 window.addEventListener('resize', () => (animationID = resize(opts)));
 animationID = resize(opts);
 
-const header = document.createElement('h3');
-header.innerText = 'Options:';
-header.classList.add('header');
-sliderContainer.insertAdjacentElement('beforeend', header);
+sliderContainer.appendChild(optionsHeader);
+sliderContainer.appendChild(paragraphEl);
+canvasContainer.appendChild(imageEl);
 
 // createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
 // createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
@@ -455,6 +480,7 @@ createSlider({
 		ctx.lineWidth = v;
 		animate(opts);
 	},
+	parent: sliderContainer,
 });
 createSlider({
 	label: 'Angle Increase per Frame:',
@@ -466,6 +492,7 @@ createSlider({
 		opts.angleIncreasePerFrame = v;
 		animate(opts);
 	},
+	parent: sliderContainer,
 });
 createSlider({
 	label: 'Interval Length (ms):',
@@ -476,6 +503,7 @@ createSlider({
 		opts.interval = v;
 		animate(opts);
 	},
+	parent: sliderContainer,
 });
 createSlider({
 	label: 'Inner Rectangles Amount',
@@ -486,12 +514,10 @@ createSlider({
 		opts.innerRectAmount = v;
 		animate(opts);
 	},
+	parent: sliderContainer,
 });
 
-const btn = document.createElement('button');
-btn.innerText = 'Reset Options';
-btn.classList.add('btn');
-btn.addEventListener('click', resetDefaultOpts);
-sliderContainer.insertAdjacentElement('beforeend', btn);
+sliderContainer.appendChild(downloadBtn);
+sliderContainer.appendChild(resetBtn);
 
 animate(opts);
