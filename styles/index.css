@@ -55,6 +55,7 @@ body {
 }
 
 .btn {
+	display: block;
 	margin: 0.75em;
 	padding: 0.3em 1em;
 	background-color: whitesmoke;

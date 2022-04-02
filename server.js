@@ -17,7 +17,13 @@ app.get('/', (req, res) => {
 	.get('/img/:name', (req, res) => {
 		res.sendFile(path.join(dataPath, req.params.name));
 	})
-	.post('/save-file', (req, res) => {
+	.get('/save/:name', (req, res) => {
+		const fpath = path.join(dataPath, req.params.name);
+		if (!fs.existsSync(fpath)) return res.json({ success: false });
+
+		res.download(fpath, req.params.name);
+	})
+	.post('/save', (req, res) => {
 		const form = formidable({
 			uploadDir: dataPath,
 			filename: (name, ext, part) => {
@@ -29,8 +35,7 @@ app.get('/', (req, res) => {
 
 				setTimeout(() => {
 					fs.rmSync(path.join(dataPath, fname + fnameExt));
-					console.log('Deleting ' + fname + fnameExt + '...');
-				}, 1000 * 60 * 3);
+				}, 1000 * 60 * 10);
 
 				return fname + fnameExt;
 			},
