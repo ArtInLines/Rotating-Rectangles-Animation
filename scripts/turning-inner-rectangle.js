@@ -292,7 +292,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		height: context.canvas.height, // output image height, null means first frame determines height
 		workerScript: '/public/gif.js/gif.worker.js',
 		dither: false, // dithering method. See full docs for all options
-		debug: true,
+		debug: false,
 		transparent: null,
 	});
 	context.canvas.style.display = 'block';
@@ -341,6 +341,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 	}, interval);
 
 	animate.gif.on('abort', () => {
+		clearInterval(id);
 		elForProgress.innerText = `Gif was aborted.`;
 		animate.rendering = false;
 	});
@@ -382,30 +383,29 @@ function FPSToInterval(fps) {
 	return 1000 / fps;
 }
 
-// function resize({ width, height, animID, topCorner, interval, angleIncreasePerFrame, innerRectAmount, widthFactor = 1, heightFactor = 1, elForProgress, imgEl, context = ctx }) {
-// 	console.log('Resizing');
-// 	if (widthFactor) {
-// 		width = context.canvas.width * widthFactor;
-// 		topCorner.x = context.canvas.width / 2 - width / 2;
-// 	}
-// 	if (heightFactor) {
-// 		height = context.canvas.height * heightFactor;
-// 		topCorner.y = context.canvas.height / 2 - height / 2;
-// 	}
+function resize({ width, height, animID, topCorner, interval, angleIncreasePerFrame, innerRectAmount, widthFactor = 1, heightFactor = 1, elForProgress, imgEl, context = ctx }) {
+	console.log('Resizing');
+	if (!widthFactor) widthFactor = 1;
+	width = context.canvas.width * widthFactor;
+	topCorner.x = context.canvas.width / 2 - width / 2;
 
-// 	if (animID) clearInterval(animID);
-// 	return animate({
-// 		topCorner,
-// 		height,
-// 		width,
-// 		interval,
-// 		angleIncreasePerFrame,
-// 		innerRectAmount,
-// 		context,
-// 		elForProgress,
-// 		imgEl,
-// 	});
-// }
+	if (!heightFactor) heightFactor = 1;
+	height = context.canvas.height * heightFactor;
+	topCorner.y = context.canvas.height / 2 - height / 2;
+
+	if (animID) clearInterval(animID);
+	return animate({
+		topCorner,
+		height,
+		width,
+		interval,
+		angleIncreasePerFrame,
+		innerRectAmount,
+		context,
+		elForProgress,
+		imgEl,
+	});
+}
 
 ///////////
 // Global Variables & DOM Manipulation
@@ -435,8 +435,8 @@ const opts = {
 	context: ctx,
 };
 
-// window.addEventListener('resize', () => (animationID = resize(opts)));
-// animationID = resize(opts);
+window.addEventListener('resize', () => (animationID = resize(opts)));
+animationID = resize(opts);
 
 // createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
 // createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
