@@ -412,23 +412,36 @@ ctx.lineWidth = 1;
 ctx.strokeStyle = '#000';
 ctx.fillStyle = '#fff';
 
-const opts = {
-	topCorner: new Point(0, 0),
-	width: ctx.canvas.width,
-	height: ctx.canvas.height,
-	widthFactor: 1,
-	heightFactor: 1,
-	animID: null,
-	interval: 10,
-	angleIncreasePerFrame: 0.5,
-	innerRectAmount: 3,
-	elForProgress: paragraphEl,
-	imgEl: imageEl,
-	context: ctx,
+const getDefaultOpts = (context = ctx) => {
+	return {
+		topCorner: new Point(0, 0),
+		width: context.canvas.width,
+		height: context.canvas.height,
+		widthFactor: 1,
+		heightFactor: 1,
+		animID: null,
+		interval: 10,
+		angleIncreasePerFrame: 0.5,
+		innerRectAmount: 3,
+		elForProgress: paragraphEl,
+		imgEl: imageEl,
+		context: context,
+	};
 };
+let opts = getDefaultOpts(ctx);
+
+function resetDefaultOpts() {
+	opts = getDefaultOpts(ctx);
+	animate(opts);
+}
 
 window.addEventListener('resize', () => (animationID = resize(opts)));
 animationID = resize(opts);
+
+const header = document.createElement('h3');
+header.innerText = 'Options:';
+header.classList.add('header');
+sliderContainer.insertAdjacentElement('beforeend', header);
 
 // createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
 // createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
@@ -473,5 +486,11 @@ createSlider({
 		animate(opts);
 	},
 });
+
+const btn = document.createElement('button');
+btn.innerText = 'Reset Options';
+btn.classList.add('btn');
+btn.addEventListener('click', resetDefaultOpts);
+sliderContainer.insertAdjacentElement('beforeend', btn);
 
 animate(opts);
