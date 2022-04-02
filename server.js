@@ -33,6 +33,10 @@ app.get('/', (req, res) => {
 				let i = 0;
 				while (fs.existsSync(path.join(dataPath, fname + fnameExt))) fname = name + '_' + i++;
 
+				setTimeout(() => {
+					fs.rmSync(path.join(dataPath, fname + fnameExt));
+				}, 1000 * 60 * 10);
+
 				return fname + fnameExt;
 			},
 		});
