@@ -311,6 +311,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		alpha = alpha % 45;
 
 		clearCanvas(context);
+		context.fillStyle = '#fff';
 		context.fillRect(0, 0, canvas.width, canvas.height); // Fill background - see https://github.com/jnordberg/gif.js/issues/121
 		context.strokeRect(topCorner.x, topCorner.y, width, height); // Draw outer Rectangle
 
@@ -383,28 +384,17 @@ function FPSToInterval(fps) {
 	return 1000 / fps;
 }
 
-function resize({ width, height, animID, topCorner, interval, angleIncreasePerFrame, innerRectAmount, widthFactor = 1, heightFactor = 1, elForProgress, imgEl, context = ctx }) {
+function resize(opts) {
 	console.log('Resizing');
-	if (!widthFactor) widthFactor = 1;
-	width = context.canvas.width * widthFactor;
-	topCorner.x = context.canvas.width / 2 - width / 2;
+	if (!opts.widthFactor) opts.widthFactor = 1;
+	opts.width = opts.context.canvas.width * opts.widthFactor;
+	opts.topCorner.x = opts.context.canvas.width / 2 - opts.width / 2;
 
-	if (!heightFactor) heightFactor = 1;
-	height = context.canvas.height * heightFactor;
-	topCorner.y = context.canvas.height / 2 - height / 2;
+	if (!opts.heightFactor) opts.heightFactor = 1;
+	opts.height = opts.context.canvas.height * opts.heightFactor;
+	opts.topCorner.y = opts.context.canvas.height / 2 - opts.height / 2;
 
-	if (animID) clearInterval(animID);
-	return animate({
-		topCorner,
-		height,
-		width,
-		interval,
-		angleIncreasePerFrame,
-		innerRectAmount,
-		context,
-		elForProgress,
-		imgEl,
-	});
+	return animate(opts);
 }
 
 ///////////
@@ -426,6 +416,8 @@ const opts = {
 	topCorner: new Point(0, 0),
 	width: ctx.canvas.width,
 	height: ctx.canvas.height,
+	widthFactor: 1,
+	heightFactor: 1,
 	animID: null,
 	interval: 10,
 	angleIncreasePerFrame: 0.5,
