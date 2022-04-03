@@ -272,10 +272,7 @@ function clearCanvas(context) {
 	context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, innerAngleFactor, imgEl, disabledEls, context = ctx }) {
-	const defaultText = `Creating frames for Gif...`;
-	elForProgress.innerText = defaultText;
-	disabledEls.forEach((el) => (el.disabled = true));
+function animate({ topCorner, width, height, interval, angleIncreasePerFrame, innerRectAmount, elForProgress, innerAngleFactor, makeGif, imgEl, disabledEls, context = ctx }) {
 	// Documentation for GIF.js library:
 	// https://github.com/jnordberg/gif.js
 	if (animate.gif instanceof GIF) {
@@ -284,28 +281,37 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		// animate.gif.frames = [];
 		delete animate.gif;
 	}
-	clearCanvas(context);
-	animate.gif = new GIF({
-		repeat: 0, // repeat count, -1 = no repeat, 0 = forever
-		quality: 10, // pixel sample interval, lower is better
-		workers: 2, // number of web workers to spawn
-		background: '#000', // background color where source image is transparent
-		width: context.canvas.width, // output image width, null means first frame determines width
-		height: context.canvas.height, // output image height, null means first frame determines height
-		workerScript: '/public/gif.js/gif.worker.js',
-		dither: false, // dithering method. See full docs for all options
-		debug: false,
-		transparent: null,
-	});
+
+	if (animate.intervalID) clearInterval(animate.intervalID);
+
+	const defaultText = `Creating frames for Gif...`;
+	disabledEls.forEach((el) => (el.disabled = true));
 	context.canvas.style.display = 'block';
 	imgEl.src = '';
+
+	if (makeGif) {
+		elForProgress.innerText = defaultText;
+		clearCanvas(context);
+		animate.gif = new GIF({
+			repeat: 0, // repeat count, -1 = no repeat, 0 = forever
+			quality: 10, // pixel sample interval, lower is better
+			workers: 2, // number of web workers to spawn
+			background: '#000', // background color where source image is transparent
+			width: context.canvas.width, // output image width, null means first frame determines width
+			height: context.canvas.height, // output image height, null means first frame determines height
+			workerScript: '/public/gif.js/gif.worker.js',
+			dither: false, // dithering method. See full docs for all options
+			debug: false,
+			transparent: null,
+		});
+	}
 
 	let innerAngles = new Array(innerRectAmount).fill(0);
 	const rectPoints = ['A', 'B', 'C', 'D'];
 	const lastRect = { A: null, B: null, C: null, D: null };
 	const currentRect = { A: null, B: null, C: null, D: null };
 
-	const id = setInterval(() => {
+	animate.intervalID = setInterval(() => {
 		clearCanvas(context);
 		context.fillStyle = '#fff';
 		context.fillRect(0, 0, canvas.width, canvas.height); // Fill background - see https://github.com/jnordberg/gif.js/issues/121
@@ -316,33 +322,28 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		lastRect.C = new Point(topCorner.x + width, topCorner.y + height);
 		lastRect.D = new Point(topCorner.x, topCorner.y + height);
 
-		let animationDone = true;
-
 		innerAngles[0] += angleIncreasePerFrame;
-		if (!animate.rendering && innerAngles[0] >= 45) {
+
+		if (makeGif && !animate.rendering && innerAngles[0] >= 45) {
 			animate.gif.render();
 			animate.rendering = true;
 		}
 
 		for (let i = 0; i < innerRectAmount; i++) {
 			if (i) innerAngles[i] = (innerAngles[i - 1] + angleIncreasePerFrame) * innerAngleFactor;
+			if (innerAngles[i] >= 45) {
+				let tmp = currentRect[rectPoints[0]];
+				for (let k = 0; k < rectPoints.length - 1; k++) currentRect[rectPoints[k]] = currentRect[rectPoints[k + 1]];
+				currentRect[rectPoints[rectPoints.length]] = tmp;
+			}
 			innerAngles[i] %= 45;
-
-			// console.log({ i, val: innerAngles[i] });
 
 			for (let k = 0; k < rectPoints.length; k++) {
 				const point = rectPoints[k];
 				// Set new values for currentRect
 				currentRect[point] = getPointOnLine(lastRect[point], lastRect[rectPoints[(k + 1) % rectPoints.length]], innerAngles[i], 45);
-
-				// Only end the animation if all corresponding points are at the same position
-				// if (!VectorPrimitive.areEqual(lastRect[point], currentRect[point])) {
-				// 	animationDone = false;
-				// 	// console.log('Animation not done', { point, lastRect: lastRect[point], currentRect: currentRect[point] });
-				// }
 			}
-			// console.log('LastRect', { A: lastRect.A.stringify(), B: lastRect.B.stringify(), C: lastRect.C.stringify(), D: lastRect.D.stringify() });
-			// console.log('currentRect', { A: currentRect.A.stringify(), B: currentRect.B.stringify(), C: currentRect.C.stringify(), D: currentRect.D.stringify() });
+
 			// Draw current rect
 			drawRect(currentRect.A, currentRect.B, currentRect.C, currentRect.D, context);
 			// Set current rect as last Rect
@@ -352,46 +353,48 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 			}
 		}
 
-		if (!animate.rendering) animate.gif.addFrame(ctx, { copy: true, delay: Math.max(interval, 20) });
+		if (makeGif && !animate.rendering) animate.gif.addFrame(ctx, { copy: true, delay: Math.max(interval, 20) });
 	}, interval);
 
-	animate.gif.on('abort', () => {
-		clearInterval(id);
-		elForProgress.innerText = defaultText;
-		animate.rendering = false;
-	});
+	if (makeGif) {
+		animate.gif.on('abort', () => {
+			clearInterval(animate.intervalID);
+			// elForProgress.innerText = defaultText;
+			animate.rendering = false;
+		});
 
-	animate.gif.on('progress', (percentage) => {
-		elForProgress.innerText = `${Math.round(percentage * 100)}% of the Gif is rendered!`;
-	});
+		animate.gif.on('progress', (percentage) => {
+			elForProgress.innerText = `${Math.round(percentage * 100)}% of the Gif is rendered!`;
+		});
 
-	animate.gif.on('finished', (blob) => {
-		clearInterval(id);
-		clearCanvas(context);
-		elForProgress.innerText = 'Gif done!';
+		animate.gif.on('finished', (blob) => {
+			clearInterval(animate.intervalID);
+			clearCanvas(context);
+			elForProgress.innerText = 'Gif done!';
 
-		let formd = new FormData();
-		let fname = 'Rotating Rectangles.gif';
-		formd.append('file', blob, fname);
+			let formd = new FormData();
+			let fname = 'Rotating Rectangles.gif';
+			formd.append('file', blob, fname);
 
-		fetch('/save', {
-			method: 'POST',
-			body: formd,
-		})
-			.then((res) => res.json())
-			.then((res) => {
-				console.log(res);
-				imgEl.src = res.fpath;
-				disabledEls.forEach((el) => {
-					el.disabled = false;
-					el.setAttribute('data-gifname', res.fname);
+			fetch('/save', {
+				method: 'POST',
+				body: formd,
+			})
+				.then((res) => res.json())
+				.then((res) => {
+					console.log(res);
+					imgEl.src = res.fpath;
+					disabledEls.forEach((el) => {
+						el.disabled = false;
+						el.setAttribute('data-gifname', res.fname);
+					});
+					imgEl.display = 'block';
+					context.canvas.style.display = 'none';
 				});
-				imgEl.display = 'block';
-				context.canvas.style.display = 'none';
-			});
-	});
+		});
+	}
 
-	return id;
+	return animate.intervalID;
 }
 
 function intervalToFPS(ms) {
@@ -418,8 +421,7 @@ function resize(opts) {
 ///////////
 // Global Variables & DOM Manipulation
 
-const paragraphEl = document.createElement('p');
-paragraphEl.classList.add('feedback-text', 'text');
+let opts;
 
 const imageEl = document.createElement('img');
 imageEl.classList.add('gif-player');
@@ -427,6 +429,27 @@ imageEl.classList.add('gif-player');
 const optionsHeader = document.createElement('h3');
 optionsHeader.innerText = 'Options:';
 optionsHeader.classList.add('header');
+
+const paragraphEl = document.createElement('p');
+paragraphEl.classList.add('feedback-text', 'text');
+const defaultTextForNoGif = 'If you want to make a Gif, check the "Make a Gif" checkbox.';
+paragraphEl.innerText = defaultTextForNoGif;
+
+const makeGifCheckboxContainer = document.createElement('div');
+const makeGifCheckbox = document.createElement('input');
+const makeGifCheckboxLabel = document.createElement('label');
+makeGifCheckboxLabel.innerText = 'Make a Gif?';
+makeGifCheckbox.type = 'checkbox';
+makeGifCheckbox.checked = false;
+makeGifCheckbox.addEventListener('change', () => {
+	const checked = makeGifCheckbox.checked;
+	if (!checked) paragraphEl.innerText = defaultTextForNoGif;
+	console.log(paragraphEl.innerText);
+	opts.makeGif = checked;
+	animate(opts);
+});
+makeGifCheckboxContainer.appendChild(makeGifCheckboxLabel);
+makeGifCheckboxContainer.appendChild(makeGifCheckbox);
 
 const downloadBtn = document.createElement('button');
 downloadBtn.innerText = 'Download Gif';
@@ -462,13 +485,14 @@ const getDefaultOpts = (context = ctx) => {
 		angleIncreasePerFrame: 0.5,
 		innerAngleFactor: 1,
 		innerRectAmount: 3,
+		makeGif: false,
 		elForProgress: paragraphEl,
 		imgEl: imageEl,
 		disabledEls: [downloadBtn],
 		context: context,
 	};
 };
-let opts = getDefaultOpts(ctx);
+opts = getDefaultOpts(ctx);
 
 function resetDefaultOpts() {
 	opts = getDefaultOpts(ctx);
@@ -476,11 +500,12 @@ function resetDefaultOpts() {
 }
 
 window.addEventListener('resize', () => (animationID = resize(opts)));
-animationID = resize(opts);
+
+canvasContainer.appendChild(imageEl);
 
 sliderContainer.appendChild(optionsHeader);
 sliderContainer.appendChild(paragraphEl);
-canvasContainer.appendChild(imageEl);
+sliderContainer.appendChild(makeGifCheckboxContainer);
 
 // createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
 // createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
@@ -499,8 +524,8 @@ createSlider({
 	label: 'Angle Increase per Frame:',
 	value: opts.angleIncreasePerFrame,
 	min: 0.1,
-	max: 5,
-	step: 0.1,
+	max: 2,
+	step: 0.01,
 	onChange: (v) => {
 		opts.angleIncreasePerFrame = v;
 		animate(opts);
@@ -511,8 +536,8 @@ createSlider({
 	label: 'Inner Angle Increase Factor:',
 	value: opts.innerAngleFactor,
 	min: 0.1,
-	max: 10,
-	step: 0.1,
+	max: 2,
+	step: 0.01,
 	onChange: (v) => {
 		opts.innerAngleFactor = v;
 		animate(opts);
@@ -545,4 +570,4 @@ createSlider({
 sliderContainer.appendChild(downloadBtn);
 sliderContainer.appendChild(resetBtn);
 
-animate(opts);
+animationID = animate(opts);
