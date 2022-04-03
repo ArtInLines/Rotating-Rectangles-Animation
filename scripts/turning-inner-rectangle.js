@@ -1,6 +1,11 @@
 import setCanvasSize from '/public/scripts/set-canvas-size.js';
 import { VectorPrimitive, Point, Vector } from '/public/scripts/vector.js';
 
+// TODO: Refactor animate() & option-elements creation
+// TODO: It would be best if I could figure out a way to maintain all state via events
+// TODO: Figure out what events would be needed and how all objects would communicate with each other
+// TODO: Update animate() to not "restart" after the first inner rectangle rotated by 45°
+
 const canvasContainer = document.getElementById('canvas-container');
 const sliderContainer = document.getElementById('input-container');
 const canvas = document.querySelector('canvas');
