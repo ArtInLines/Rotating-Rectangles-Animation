@@ -69,9 +69,15 @@ body {
 
 .btn:hover {
 	border-color: #000;
-	border-style: solid;
 	color: #000;
 	background-color: white;
+}
+
+.btn:disabled {
+	color: #777;
+	background-color: #aaa;
+	border-color: #777;
+	cursor: default;
 }
 
 .header {
