@@ -289,6 +289,27 @@ makeGifCheckbox.addEventListener('change', () => {
 makeGifCheckboxContainer.appendChild(makeGifCheckboxLabel);
 makeGifCheckboxContainer.appendChild(makeGifCheckbox);
 
+const forceSquareCheckboxContainer = document.createElement('div');
+const forceSquareCheckbox = document.createElement('input');
+const forceSquareCheckboxLabel = document.createElement('label');
+forceSquareCheckboxLabel.innerText = 'Force Squares';
+forceSquareCheckbox.type = 'checkbox';
+forceSquareCheckbox.checked = false;
+forceSquareCheckbox.addEventListener('change', () => {
+	const checked = forceSquareCheckbox.checked;
+	opts.forceSquare = checked;
+	if (checked) {
+		opts.height = Math.min(opts.height, opts.width);
+		opts.width = opts.height;
+	} else {
+		opts.width = ctx.canvas.width;
+		opts.height = ctx.canvas.height;
+	}
+	animate(opts);
+});
+forceSquareCheckboxContainer.appendChild(forceSquareCheckboxLabel);
+forceSquareCheckboxContainer.appendChild(forceSquareCheckbox);
+
 const downloadBtn = document.createElement('button');
 downloadBtn.innerText = 'Download Gif';
 downloadBtn.disabled = true;
@@ -323,7 +344,8 @@ const getDefaultOpts = (context = ctx) => {
 		angleIncreasePerFrame: 0.5,
 		innerAngleFactor: 1,
 		innerRectAmount: 3,
-		makeGif: false,
+		makeGif: makeGifCheckbox.checked,
+		forceSquare: forceSquareCheckbox.checked,
 		elForProgress: paragraphEl,
 		imgEl: imageEl,
 		disabledEls: [downloadBtn],
@@ -347,6 +369,7 @@ canvasContainer.appendChild(imageEl);
 sliderContainer.appendChild(optionsHeader);
 sliderContainer.appendChild(paragraphEl);
 sliderContainer.appendChild(makeGifCheckboxContainer);
+sliderContainer.appendChild(forceSquareCheckboxContainer);
 
 // createSlider({ label: 'Width:', value: opts.width, min: 1, max: ctx.canvas.width, onChange: (v) => resize({ ...opts, widthFactor: v / 100 }) });
 // createSlider({ label: 'Height:', value: opts.height, min: 1, max: ctx.canvas.height, onChange: (v) => resize({ ...opts, heightFactor: v / 100 }) });
