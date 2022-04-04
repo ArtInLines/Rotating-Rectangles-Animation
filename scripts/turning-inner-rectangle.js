@@ -167,7 +167,8 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 		}
 
 		for (let i = 0; i < innerRectAmount; i++) {
-			if (i) innerAngles[i] = (innerAngles[i - 1] + angleIncreasePerFrame) * innerAngleFactor;
+			// if (i) innerAngles[i] = (innerAngles[i - 1] + angleIncreasePerFrame) * innerAngleFactor;
+			if (i) innerAngles[i] = innerAngles[i] + angleIncreasePerFrame * innerAngleFactor;
 			if (innerAngles[i] >= 45) {
 				let tmp = currentRect[rectPoints[0]];
 				for (let k = 0; k < rectPoints.length - 1; k++) currentRect[rectPoints[k]] = currentRect[rectPoints[k + 1]];
