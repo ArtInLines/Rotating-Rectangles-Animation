@@ -6,6 +6,11 @@ import { VectorPrimitive, Point, Vector } from '/public/scripts/vector.js';
 // TODO: Figure out what events would be needed and how all objects would communicate with each other
 // TODO: Update animate() to not "restart" after the first inner rectangle rotated by 45°
 
+let darkMode = true;
+const getColorModePrefix = () => (darkMode ? 'dark-' : 'light-');
+const getCanvaBackgroundColor = () => (darkMode ? '#111' : '#ddd');
+const getCanvasDrawColor = () => (darkMode ? '#ddd' : '#111');
+
 const canvasContainer = document.getElementById('canvas-container');
 const sliderContainer = document.getElementById('input-container');
 const canvas = document.querySelector('canvas');
@@ -23,13 +28,13 @@ function createSlider({ label, id = label, value = 50, min = 1, max = 100, step 
 	labelEl.setAttribute('for', id);
 	labelEl.setAttribute('name', id + '-label');
 	labelEl.textContent = label;
-	labelEl.classList.add('label');
-	labelEl.classList.add('slider-label');
+	labelEl.classList.add(getColorModePrefix() + 'label');
+	labelEl.classList.add(getColorModePrefix() + 'slider-label');
 
 	valEl.name = id + '-text';
 	valEl.type = 'text';
 	valEl.value = value;
-	valEl.classList.add('slider-value-text');
+	valEl.classList.add(getColorModePrefix() + 'slider-value-text');
 
 	sliderEl.name = id;
 	sliderEl.type = 'range';
@@ -37,7 +42,7 @@ function createSlider({ label, id = label, value = 50, min = 1, max = 100, step 
 	sliderEl.max = max;
 	sliderEl.step = step;
 	sliderEl.value = value;
-	sliderEl.classList.add('slider');
+	sliderEl.classList.add(getColorModePrefix() + 'slider');
 
 	sliderEl.addEventListener('change', () => {
 		valEl.value = sliderEl.value;
@@ -49,7 +54,7 @@ function createSlider({ label, id = label, value = 50, min = 1, max = 100, step 
 		if (typeof onChange == 'function') onChange(Number(sliderEl.value), sliderEl, containerEl);
 	});
 
-	containerEl.classList.add('slider-container');
+	containerEl.classList.add(getColorModePrefix() + 'slider-container');
 	containerEl.appendChild(labelEl);
 	containerEl.appendChild(sliderEl);
 	containerEl.appendChild(valEl);
@@ -133,7 +138,7 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 			repeat: 0, // repeat count, -1 = no repeat, 0 = forever
 			quality: 10, // pixel sample interval, lower is better
 			workers: 2, // number of web workers to spawn
-			background: '#000', // background color where source image is transparent
+			background: getCanvaBackgroundColor(), // background color where source image is transparent
 			width: context.canvas.width, // output image width, null means first frame determines width
 			height: context.canvas.height, // output image height, null means first frame determines height
 			workerScript: '/public/gif.js/gif.worker.js',
@@ -150,7 +155,8 @@ function animate({ topCorner, width, height, interval, angleIncreasePerFrame, in
 
 	animate.intervalID = setInterval(() => {
 		clearCanvas(context);
-		context.fillStyle = '#fff';
+		context.fillStyle = getCanvaBackgroundColor();
+		context.strokeStyle = getCanvasDrawColor();
 		context.fillRect(0, 0, canvas.width, canvas.height); // Fill background - see https://github.com/jnordberg/gif.js/issues/121
 		context.strokeRect(topCorner.x, topCorner.y, width, height); // Draw outer Rectangle
 
@@ -262,14 +268,14 @@ function resize(opts) {
 let opts;
 
 const imageEl = document.createElement('img');
-imageEl.classList.add('gif-player');
+imageEl.classList.add(getColorModePrefix() + 'gif-player');
 
 const optionsHeader = document.createElement('h3');
 optionsHeader.innerText = 'Options:';
-optionsHeader.classList.add('header');
+optionsHeader.classList.add(getColorModePrefix() + 'header');
 
 const paragraphEl = document.createElement('p');
-paragraphEl.classList.add('feedback-text', 'text');
+paragraphEl.classList.add(getColorModePrefix() + 'feedback-text', 'text');
 const defaultTextForNoGif = 'If you want to make a Gif, check the "Make a Gif" checkbox.';
 paragraphEl.innerText = defaultTextForNoGif;
 
@@ -292,7 +298,7 @@ makeGifCheckboxContainer.appendChild(makeGifCheckbox);
 const downloadBtn = document.createElement('button');
 downloadBtn.innerText = 'Download Gif';
 downloadBtn.disabled = true;
-downloadBtn.classList.add('btn');
+downloadBtn.classList.add(getColorModePrefix() + 'btn');
 const downloadBtnAnchor = document.createElement('a');
 downloadBtn.appendChild(downloadBtnAnchor);
 downloadBtn.addEventListener('click', () => {
@@ -304,12 +310,12 @@ downloadBtn.addEventListener('click', () => {
 
 const resetBtn = document.createElement('button');
 resetBtn.innerText = 'Reset Options';
-resetBtn.classList.add('btn');
+resetBtn.classList.add(getColorModePrefix() + 'btn');
 resetBtn.addEventListener('click', resetDefaultOpts);
 
 ctx.lineWidth = 1;
-ctx.strokeStyle = '#000';
-ctx.fillStyle = '#fff';
+ctx.strokeStyle = getCanvasDrawColor();
+ctx.fillStyle = getCanvaBackgroundColor();
 
 const getDefaultOpts = (context = ctx) => {
 	return {
@@ -343,6 +349,9 @@ window.addEventListener('resize', () => {
 });
 
 canvasContainer.appendChild(imageEl);
+
+sliderContainer.classList.add(getColorModePrefix() + 'container');
+canvasContainer.classList.add(getColorModePrefix() + 'container');
 
 sliderContainer.appendChild(optionsHeader);
 sliderContainer.appendChild(paragraphEl);

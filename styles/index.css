@@ -14,6 +14,16 @@ body {
 	display: flex;
 }
 
+.light-container {
+	background-color: #ddd;
+	color: #111;
+}
+
+.dark-container {
+	background-color: #111;
+	color: #ddd;
+}
+
 #input-container {
 	width: max-content;
 	height: 100%;
@@ -24,37 +34,82 @@ body {
 	height: 100%;
 }
 
-.slider-container {
+.dark-slider-container {
 }
 
-.label {
+.light-slider-container {
 }
 
-.slider-label {
+.dark-label {
+	color: #ddd;
 }
 
-.slider-value-text {
+.light-label {
+	color: #111;
+}
+
+.dark-slider-label {
+}
+
+.light-slider-label {
+}
+
+.dark-slider-value-text {
 	display: inline-block;
 }
 
-.slider {
+.light-slider-value-text {
 	display: inline-block;
 }
 
-.text {
+.dark-slider {
+	display: inline-block;
 }
 
-.feedback-text {
+.light-slider {
+	display: inline-block;
 }
 
-.gif-player {
+.dark-text {
+}
+
+.light-text {
+}
+
+.dark-feedback-text {
+}
+
+.light-feedback-text {
+}
+
+.dark-gif-player {
 	z-index: 10;
 	position: relative;
 	top: 0;
 	left: 0;
 }
 
-.btn {
+.light-gif-player {
+	z-index: 10;
+	position: relative;
+	top: 0;
+	left: 0;
+}
+
+.dark-btn {
+	display: block;
+	margin: 0.75em;
+	padding: 0.3em 1em;
+	background-color: #111;
+	border-color: whitesmoke;
+	border-style: solid;
+	border-radius: 5px;
+	cursor: pointer;
+	color: whitesmoke;
+	font-size: 0.85em;
+}
+
+.light-btn {
 	display: block;
 	margin: 0.75em;
 	padding: 0.3em 1em;
@@ -63,22 +118,38 @@ body {
 	border-style: solid;
 	border-radius: 5px;
 	cursor: pointer;
-	color: #222;
+	color: #111;
 	font-size: 0.85em;
 }
 
-.btn:hover {
-	border-color: #000;
-	color: #000;
-	background-color: white;
+.dark-btn:hover {
+	border-color: #ddd;
+	color: #ddd;
+	background-color: #111;
 }
 
-.btn:disabled {
+.light-btn:hover {
+	border-color: #111;
+	color: #111;
+	background-color: #ddd;
+}
+
+.dark-btn:disabled {
+	color: #aaa;
+	background-color: #777;
+	border-color: #aaa;
+	cursor: default;
+}
+
+.light-btn:disabled {
 	color: #777;
 	background-color: #aaa;
 	border-color: #777;
 	cursor: default;
 }
 
-.header {
+.dark-header {
+}
+
+.light-header {
 }
